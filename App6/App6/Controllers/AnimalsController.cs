@@ -80,5 +80,61 @@ public class AnimalsController : ControllerBase
         
         return Created("", null);
     }
+    [HttpGet]
+public IActionResult GetAnimals([FromQuery] string orderBy = "name")
+{
+    var columnNames = new List<string> { "name", "description", "category", "area" };
+    orderBy = columnNames.Contains(orderBy.ToLower()) ? orderBy : "name";
+    using SqlConnection connection = new SqlConnection(_configuration.GetConnectionString("Default"));
+    connection.Open();
+    SqlCommand command = new SqlCommand($"SELECT * FROM Animal ORDER BY {orderBy}", connection);
+    var reader = command.ExecuteReader();
+    List<Animal> animals = new List<Animal>();
+    while (reader.Read())
+    {
+     
+        int idAnimalOrdinal = reader.GetOrdinal("IdAnimal");
+        int nameOrdinal = reader.GetOrdinal("Name");
+        int descriptionOrdinal = reader.GetOrdinal("Description");
+        int categoryOrdinal = reader.GetOrdinal("Category");
+        int areaOrdinal = reader.GetOrdinal("Area");
+        animals.Add(new Animal
+        {
+            IdAnimal = reader.GetInt32(idAnimalOrdinal),
+            Name = reader.GetString(nameOrdinal),
+            Description = reader.IsDBNull(descriptionOrdinal) ? null : reader.GetString(descriptionOrdinal),
+            Category = reader.IsDBNull(categoryOrdinal) ? null : reader.GetString(categoryOrdinal),
+            Area = reader.IsDBNull(areaOrdinal) ? null : reader.GetString(areaOrdinal)
+        });
+    }
+
+    return Ok(animals);
+}
+
+[HttpPut("{idAnimal}")]
+public IActionResult UpdateAnimal(int idAnimal, [FromBody] Animal animal)
+{
+    using SqlConnection connection = new SqlConnection(_configuration.GetConnectionString("Default"));
+    connection.Open();
+    SqlCommand command = new SqlCommand($"UPDATE Animal SET Name = @Name, Description = @Description, Category = @Category, Area = @Area WHERE IdAnimal = @IdAnimal", connection);
+    command.Parameters.AddWithValue("@IdAnimal", idAnimal);
+    command.Parameters.AddWithValue("@Name", animal.Name);
+    command.Parameters.AddWithValue("@Description", animal.Description);
+    command.Parameters.AddWithValue("@Category", animal.Category);
+    command.Parameters.AddWithValue("@Area", animal.Area);
+    command.ExecuteNonQuery();
+    return NoContent();
+}
+
+[HttpDelete("{idAnimal}")]
+public IActionResult DeleteAnimal(int idAnimal)
+{
+    using SqlConnection connection = new SqlConnection(_configuration.GetConnectionString("Default"));
+    connection.Open();
+    SqlCommand command = new SqlCommand("DELETE FROM Animal WHERE IdAnimal = @IdAnimal", connection);
+    command.Parameters.AddWithValue("@IdAnimal", idAnimal);
+    command.ExecuteNonQuery();
+    return NoContent();
+}
     
 }
